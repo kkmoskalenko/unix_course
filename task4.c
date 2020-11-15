@@ -2,8 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// TODO: Don't use this constant
-#define MAX_STRING_LENGTH 10000
+#define BUFFER_SIZE 256
 
 typedef struct Node_s {
     char *string;
@@ -23,11 +22,11 @@ void init() {
 
 void push(char *string) {
     unsigned long len = strlen(string) + 1;
-    char *copyPtr = malloc(len * sizeof(char));
+    char *copyPtr = calloc(len, sizeof(char));
     strcpy(copyPtr, string);
 
     tail->string = copyPtr;
-    tail->next = malloc(sizeof(Node));
+    tail->next = calloc(1, sizeof(Node));
 
     tail = tail->next;
 }
@@ -36,24 +35,51 @@ void printList() {
     Node *ptr = head;
     while (ptr != NULL) {
         if (ptr->string) {
-            printf("%s", ptr->string);
+            printf("%s\n", ptr->string);
         }
         ptr = ptr->next;
     }
 }
 
 int main() {
-    char inputBuf[MAX_STRING_LENGTH] = {0};
+    char inputBuf[BUFFER_SIZE] = {0};
 
     init();
 
-    while (fgets(inputBuf, MAX_STRING_LENGTH, stdin)) {
+    while (fgets(inputBuf, BUFFER_SIZE, stdin) != NULL) {
         if (inputBuf[0] == '.') {
             printList();
             return 0;
         }
 
-        push(inputBuf);
+        char *lineEnd = strchr(inputBuf, '\n');
+        if (lineEnd == NULL) {
+            size_t newBufCnt = 0;
+            size_t newBufCap = BUFFER_SIZE;
+            char *newBuf = malloc(BUFFER_SIZE);
+
+            memcpy(newBuf, inputBuf, BUFFER_SIZE);
+            newBufCnt += BUFFER_SIZE - 1;
+
+            while (fgets(inputBuf, BUFFER_SIZE, stdin) != NULL) {
+                newBufCap += BUFFER_SIZE;
+                newBuf = realloc(newBuf, newBufCap);
+
+                memcpy(newBuf + newBufCnt, inputBuf, BUFFER_SIZE);
+                newBufCnt += BUFFER_SIZE - 1;
+
+                lineEnd = strchr(newBuf, '\n');
+                if (lineEnd) {
+                    *lineEnd = '\0';
+                    push(newBuf);
+                    free(newBuf);
+                    break;
+                }
+            }
+        } else {
+            *lineEnd = '\0';
+            push(inputBuf);
+        }
     }
 
     return 0;
